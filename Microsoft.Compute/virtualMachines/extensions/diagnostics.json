@@ -2,13 +2,6 @@
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "resourceGroupName": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().name]",
-      "metadata": {
-        "description": "The resource group of the virtual machine."
-      }
-    },
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
@@ -22,6 +15,13 @@
         "description": "The virtual machine for which to enable diagnostics."
       }
     },
+    "storageAccountResourceGroup": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "The resource group containing the diagnostic storage account."
+      }
+    },
     "storageAccountName": {
       "type": "string",
       "metadata": {
@@ -30,9 +30,8 @@
     }
   },
   "variables": {
-    "virtualMachineId": "[resourceId(parameters('resourceGroupName'), 'Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]",
-    "storageAccountId": "[resourceId(parameters('resourceGroupName'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
-    "storageAccountKey": "[listKeys(variables('storageAccountId'), '2017-06-01').keys[0]]",
+    "virtualMachineId": "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]",
+    "storageAccountId": "[resourceId(variables('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
     "extensionName": "[concat(parameters('virtualMachineName'), '/DiagnosticsExtension')]"
   },
   "resources": [{
@@ -221,9 +220,15 @@
       },
       "protectedSettings": {
         "storageAccountName": "[parameters('storageAccountName')]",
-        "storageAccountKey": "[variables('storageAccountKey')]",
+        "storageAccountKey": "[listKeys(variables('storageAccountId'), '2017-06-01').keys[0].value]",
         "storageAccountEndPoint": "https://core.windows.net/"
       }
     }
-  }]
+  }],
+  "outputs": {
+    "id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('virtualMachineName'), 'DiagnosticsExtension')]"
+    }
+  }
 }

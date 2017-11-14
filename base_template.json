@@ -1,0 +1,55 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "parameterName": {
+      "type": "string|securestring|int|bool|object|secureObject|array",
+      "defaultValue": null,
+      "allowedValues": [],
+      "metadata": {},
+      "minValue": 0,
+      "maxValue": 0,
+      "minLength": 0,
+      "maxLength": 0,
+    }
+  },
+  "variables": {
+    "variableName": {
+      "literallyAnything": true,
+      "functions": [
+        "json", "if", "and", "or", "not", "concat", "parameters", "variables", "deployment", "reference",
+        "resourceId", "resourceGroup", "subscription", "list.*", "base64", "providers", "copyIndex", "padLeft",
+        "replace", "toLower", "toUpper", "startsWith", "endsWith", "length", "split", "skip", "take", "contains",
+        "intersection", "union", "last", "indexOf", "lastIndexOf", "add", "sub", "mul", "div", "mod", "min",
+        "max", "range", "string", "int", "float", "bool", "trim", "uri", "uniqueString", "substring",
+        "base64ToString", "base64ToJson", "uriComponentToString", "uriComponent", "dataUriToString", "dataUri",
+        "array", "createArray", "coalesce", "empty", "less", "lessOrEquals", "greater", "greaterOrEquals",
+        "equals"
+      ]
+    }
+  },
+  "resources": [
+    {
+      "name": "",
+      "type": "",
+      "condition": true,
+      "apiVersion": "2017-08-01",
+      "dependsOn": [],
+      "location": "",
+      "tags": {},
+      "copy": {
+        "name": "",
+        "count": 0,
+        "mode": "Parallel|Serial",
+        "batchSize": 1
+      },
+      "comments": "",
+    }
+  ],
+  "outputs": {
+    "outputName": {
+      "type": "type",
+      "value": null
+    }
+  }
+}

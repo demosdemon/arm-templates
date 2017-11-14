@@ -1,0 +1,98 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The location of the vm."
+      }
+    },
+    "virtualMachineName": {
+      "type": "string",
+      "metadata": {
+        "description": "The virtual machine to apply the script to."
+      }
+    },
+    "fileUris": {
+      "type": "string",
+      "metadata": {
+        "description": "Space separated collection of urls to download. The first url will be executed."
+      }
+    },
+    "arguments": {
+      "type": "securestring",
+      "defaultValue": " ",
+      "metadata": {
+        "description": "Additional arguments appended to the call. Arguments are passed directly to the shell and must be appropriately quoted."
+      }
+    },
+    "fileKind": {
+      "type": "string",
+      "defaultValue": "script",
+      "allowedValues": ["script", "batch", "binary"],
+      "metadata": {
+        "description": "The kind of executable, PowerShell script, cmd batch script, or a binary executable."
+      }
+    },
+    "executionPolicy": {
+      "type": "string",
+      "defaultValue": "AllSigned",
+      "allowedValues": ["AllSigned", "RemoteSigned", "Bypass", "Unrestricted"],
+      "metadata": {
+        "description": "The PowerShell execution policy override."
+      }
+    },
+    "storageAccountGroup": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "The group the storage account belongs to."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "",
+      "metaData": {
+        "description": "The storage account (if any) where the downloadables are stored."
+      }
+    }
+  },
+  "variables": {
+    "fileUris": "[split(parameters('fileUris'), ' ')]",
+    "firstUri": "[first(split(last(split(first(variables('fileUris')), '://')), '?'))]",
+    "firstPath": "[substring(variables('firstUri'), add(indexOf(variables('firstUri'), '/'), 1))]",
+    "callPath": "[if(greaterOrEquals(indexOf(variables('firstPath'), '/'), 0), substring(variables('firstPath'), add(indexOf(variables('firstPath'), '/'), 1)), variables('firstPath'))]",
+    "call-script": "[concat('powershell -ExecutionPolicy ', parameters('executionPolicy'), ' -File ''', variables('callPath'), ''' ', parameters('arguments'))]",
+    "call-batch": "[concat('cmd /S /C \"', variables('callPath'), ' ', parameters('arguments'), '\"')]",
+    "call-binary": "[concat('powershell -Command \"Start-Process -Wait -FilePath ''', variables('callPath'), ''' -ArgumentList (', parameters('arguments'), ')\"')]",
+    "commandToExecute": "[variables(concat('call-', parameters('fileKind')))]",
+    "name": "[concat(parameters('virtualMachineName'), '/CustomScriptExtension', uniqueString(resourceGroup().Id, first(variables('fileUris'))))]",
+    "template": "[if(equals('', parameters('storageAccountName')), 'noKey', 'withKey')]",
+    "templateUri": "[uri(deployment().properties.templateLink.uri, concat('customscript-', variables('template'), '.json'))]"
+  },
+  "resources": [{
+    "name": "[concat('CustomScriptExtension-', variables('template'), uniqueString(resourceGroup().id, deployment().name))]",
+    "type": "Microsoft.Resources/deployments",
+    "apiVersion": "2017-05-10",
+    "dependsOn": [
+      "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]"
+    ],
+    "properties": {
+      "templateLink": {
+        "uri": "[variables('templateUri')]"
+      },
+      "mode": "Incremental",
+      "parameters": {
+        "location": "[parameters('location')]",
+        "name": "[variables('name')]",
+        "virtualMachineName": "[parameters('virtualMachineName')]",
+        "fileUris": "[variables('fileUris')]",
+        "commandToExecute": "[variables('commandToExecute')]",
+        "storageAccountName": "[parameters('storageAccountName')]"
+      }
+    }
+  }],
+  "outputs": {}
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+    },
+    "projectName": {
+      "type": "string",
+      "defaultValue": "lbc",
+      "metadata": {
+        "description": "The main name to derive names from."
+      }
+    },
+    "subnets": {
+      "type": "string",
+      "defaultValue": "cloud",
+      "metadata": {
+        "description": "A space separated list of subnets, prefixes will be assigned from 128+ (0-127 is reserved for on-site)."
+      }
+    }
+  },
+  "variables": {
+    "vnetName": "[concat(parameters('projectName'), '-', resourceGroup().name, '-vnet')]",
+    "addressPrefix": "172.16.0.0/16",
+    "subnetNames": "[split(parameters('subnets'), ' ')]"
+  },
+  "resources": [{
+      "name": "[variables('vnetName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2017-06-01",
+      "location": "[parameters('location')]",
+      "tags": {
+        "project": "[parameters('projectName')]"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": ["[variables('addressPrefix')]"]
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('vnetName'), '/', variables('subnetNames')[copyIndex()])]",
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2017-06-01",
+      "location": "[parameters('location')]",
+      "dependsOn": ["[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"],
+      "properties": {
+        "addressPrefix": "[concat('172.16.', string(copyIndex(128)), '.0/24')]"
+      },
+      "copy": {
+        "count": "[length(variables('subnetNames'))]",
+        "name": "subnet-loop"
+      }
+    }
+  ],
+  "outputs": {
+    "virtualNetwork": {
+      "type": "object",
+      "value": "[reference(variables('vnetName'), '2017-06-01', 'Full')]"
+    }
+  }
+}

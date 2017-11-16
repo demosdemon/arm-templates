@@ -51,7 +51,7 @@ function append() {
     json=$1
     data=$2
 
-    if [[ ${data[0]} == '[' || ${data[0]} == '{' ]]; then
+    if [[ ${data:0:1} == '[' || ${data:0:1} == '{' ]]; then
         jq -c "$data + ." <<< "$json"
     else
         jq -c "[$data] + ." <<< "$json"

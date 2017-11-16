@@ -9,7 +9,7 @@ param(
 
     [string]$chocoPackages = ''
 )
-
+$VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
 trap{
@@ -39,9 +39,9 @@ function Write-Log {
         $text = @(($Message | Out-String) -split [Environment]::NewLine)
         foreach ($line in $text)
         {
-            $msg = "[$now] $line"
+            $msg = ('[{0}] {1}' -f $now, $line)
             $msg | Out-File -Append -FilePath $LogFile
-            Write-Host $msg
+            Write-Verbose -Message $msg
         }
     }
 }
@@ -63,7 +63,7 @@ function Get-Uri {
         $tries += 1
         try
         {
-            Write-Log "Attempt ${tries}: downloading $DownloadUri"
+            Write-Log -Message ('Attempt {0}: downloading {1}' -f $tries, $DownloadUri)
             if ($OutPath)
             {
                 Invoke-WebRequest -UseBasicParsing -Uri $DownloadUri -OutFile $OutPath
@@ -76,7 +76,7 @@ function Get-Uri {
         }
         catch
         {
-            start-sleep 10
+            start-sleep -Seconds 10
         }
     }
 }
@@ -93,12 +93,12 @@ function Invoke-DownloadInstall {
     $filename = [IO.Path]::GetFileName($DownloadUri.LocalPath)
     $exec_file = '{0}\{1}' -f $env:TEMP,$filename
 
-    Write-Log "Downloading $DownloadUri"
+    Write-Log -Message ('Downloading {0}' -f $DownloadUri)
     Get-Uri -DownloadUri $DownloadUri -OutPath $exec_file
 
-    Write-Log "Starting $exec_file $($ArgumentList -join ' ')"
+    Write-Log -Message ('Starting {0} {1}' -f $exec_file, ($ArgumentList -join ' '))
     Start-Process -FilePath $exec_file -ArgumentList $ArgumentList -NoNewWindow -Wait
-    Write-Log "Finished: $LastExitCode"
+    Write-Log -Message ('Finished: {0}' -f $LastExitCode)
 }
 
 function Disable-InternetExplorerESC {
@@ -107,7 +107,7 @@ function Disable-InternetExplorerESC {
     Set-ItemProperty -Path $AdminKey -Name 'IsInstalled' -Value 0
     Set-ItemProperty -Path $UserKey -Name 'IsInstalled' -Value 0
     Stop-Process -Name Explorer -ErrorAction Ignore -Force
-    Write-Log 'IE Enhanced Security Configuration (ESC) has been disabled.'
+    Write-Log -Message 'IE Enhanced Security Configuration (ESC) has been disabled.'
 }
 
 function Enable-InternetExplorerESC {
@@ -116,12 +116,12 @@ function Enable-InternetExplorerESC {
     Set-ItemProperty -Path $AdminKey -Name 'IsInstalled' -Value 1
     Set-ItemProperty -Path $UserKey -Name 'IsInstalled' -Value 1
     Stop-Process -Name Explorer -ErrorAction Ignore -Force
-    Write-Log 'IE Enhanced Security Configuration (ESC) has been enabled.'
+    Write-Log -Message 'IE Enhanced Security Configuration (ESC) has been enabled.'
 }
 
 function Disable-UserAccessControl {
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'ConsentPromptBehaviorAdmin' -Value 00000000
-    Write-Log 'User Access Control (UAC) has been disabled.'
+    Write-Log -Message 'User Access Control (UAC) has been disabled.'
 }
 
 function Start-Task {
@@ -129,34 +129,34 @@ function Start-Task {
     param(
     )
 
-    Write-Log "Disabling Internet Explorer Enhansed Security Configuration"
+    Write-Log -Message 'Disabling Internet Explorer Enhansed Security Configuration'
     Disable-InternetExplorerESC
 
-    Write-Log "Setting TimeZone to $TimeZoneName"
+    Write-Log -Message ('Setting TimeZone to {0}' -f $TimeZoneName)
     Set-TimeZone -Name $TimeZoneName
 
-    Write-Log "Updating Help."
+    Write-Log -Message 'Updating Help.'
     Update-Help -Module * -Force -ErrorAction Ignore
 
-    Write-Log "Installing NuGet Package Provider"
+    Write-Log -Message 'Installing NuGet Package Provider'
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force |
         Write-Log
 
     foreach ($mod in $Modules) {
-        Write-Log "Installing $mod"
+        Write-Log -Message ('Installing {0}' -f $mod)
         Install-Module -Name $mod -Force |
             Write-Log
-        Write-Log "Done."
+        Write-Log -Message 'Done.'
     }
 
     & "$PSScriptRoot\SetupChocolatey.ps1" -chocoPackages ('linqpad;sysinternals;fiddler4;visualstudiocode;' + $chocoPackages) |
         Write-Log
 
-    Write-Log "Adding Microsoft Update Service"
+    Write-Log -Message 'Adding Microsoft Update Service'
     Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -Confirm:$false |
         Write-Log
 
-    Write-Log "Running Windows Updates"
+    Write-Log -Message 'Running Windows Updates'
     Get-WindowsUpdate -IgnoreReboot -Install -AcceptAll -MicrosoftUpdate |
         Write-Log
 
@@ -171,14 +171,14 @@ function Start-Task {
     }
     catch
     {
-        Write-Log "Failed installing ReSharper Ultimate $_"
+        Write-Log -Message ('Failed installing ReSharper Ultimate {0}' -f $_)
     }
 }
 
 if ($Fork) {
     $params = foreach($kvp in $PSBoundParameters.GetEnumerator()) { if ($kvp.Key -ne 'Fork') { '-{0} "{1}"' -f $kvp.Key,$kvp.Value } }
     $command = '"{0}" {1}' -f $PSCommandPath,($params -join ' ')
-    Write-Host $command
+    Write-Verbose -Message $command
     Start-Process -FilePath powershell -ArgumentList ('-command', $command)
     return
 }

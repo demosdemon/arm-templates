@@ -145,7 +145,7 @@ if [[ -z $uploadArtifacts ]]; then
 fi
 
 
-if [[ $uploadArtifacts ]]; then
+if $uploadArtifacts; then
     if [[ -z $storageAccountName ]];then
         subscriptionId=$(strip_uuid "$(az account show -o json | jq -r .id)")
         artifactsStorageAccountName="stage$subscriptionId"
@@ -196,7 +196,8 @@ if [[ $uploadArtifacts ]]; then
         fi
     done < <(find "$artifactsStagingDirectory" -type f -print0)
 
-    if [[ "$(jq 'has("_artifacts")' <<< "$parameterJson")" ]]; then
+    # shellcheck disable=SC2091
+    if "$(jq 'has("_artifacts")' <<< "$parameterJson")"; then
         parameterJson=$(addKey "$parameterJson" _artifacts "{value: $artifacts}")
     fi
 
@@ -213,7 +214,7 @@ else
     command=("create" "-n" "$deploymentName")
 fi
 
-if [[ $uploadArtifacts ]]; then
+if $uploadArtifacts; then
     templateArg=("--template-uri" "$templateUri")
 else
     templateArg=("--template-file" "$templateFile")

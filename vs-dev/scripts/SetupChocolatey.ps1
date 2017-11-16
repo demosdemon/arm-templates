@@ -22,7 +22,7 @@ else
 {
   ('Creating user {0}' -f $username)
   & "$env:windir\system32\net.exe" USER $username $password /add /y /expires:never
-  
+
   ('Adding local user {0} to {1}' -f $username, $group)
   & "$env:windir\system32\net.exe" LOCALGROUP $group $username /add
 }
@@ -57,4 +57,10 @@ $chocoPackages.Split(';') | Sort-Object -Unique | ForEach-Object {
 $adsi.Delete('User', $userName)
 
 # Delete the artifactInstaller user profile
-Get-WmiObject win32_userprofile | Where-Object { $_.LocalPath -like ('*{0}*' -f $userName) } | ForEach-Object { $_.Delete() }
+try {
+    Get-WmiObject win32_userprofile | Where-Object { $_.LocalPath -like ('*{0}*' -f $userName) } | ForEach-Object { $_.Delete() }
+}
+catch
+{
+    Write-Warning $_
+}

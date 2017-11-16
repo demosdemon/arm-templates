@@ -43,8 +43,7 @@ $sb = { Invoke-Expression ((new-object net.webclient).DownloadString('https://ch
 Invoke-Command -ScriptBlock $sb -ComputerName $env:COMPUTERNAME -Credential $credential
 
 #"Install each Chocolatey Package"
-$chocoPackages.Split(';') | Sort-Object -Unique | ForEach-Object 
-{
+$chocoPackages.Split(';') | Sort-Object -Unique | ForEach-Object {
     $command = ('cinst {0} -y -force' -f $_)
     $command
     $sb = [scriptblock]::Create($command)

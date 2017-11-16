@@ -207,10 +207,6 @@ fi
 
 az group create -n "$resourceGroupName" -l "$location"
 
-# Remove line endings from parameter JSON so it can be passed in to the CLI as a single line
-# I'm not removing this, but I'm adding a comment saying it's unecessary. The shell handles newlines in quoted parameters just fine
-parameterJson=$( jq -c '.' <<< "$parameterJson" )
-
 if [[ $validateOnly ]]; then
     command=("validate")
 else

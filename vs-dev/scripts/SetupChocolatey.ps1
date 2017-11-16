@@ -51,7 +51,7 @@ $chocoPackages.Split(';') | Sort-Object -Unique | ForEach-Object
 {
     $command = ('cinst {0} -y -force' -f $_)
     $command
-    $sb = [scriptblock]::Create(('{0}' -f $command))
+    $sb = [scriptblock]::Create($command)
 
     # Use the current user profile
     Invoke-Command -ScriptBlock $sb -ArgumentList $chocoPackages -ComputerName $env:COMPUTERNAME -Credential $credential

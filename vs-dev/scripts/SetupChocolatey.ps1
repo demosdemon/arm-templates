@@ -28,7 +28,7 @@ else
 }
 
 $secPassword = ConvertTo-SecureString -String $password -AsPlainText -Force
-$credential = New-Object pscredential $username,$secPassword
+$credential = New-Object pscredential "$env:COMPUTERNAME\$username",$secPassword
 
 # Ensure that current process can run scripts.
 'Enabling remoting'

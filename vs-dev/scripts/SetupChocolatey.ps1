@@ -42,10 +42,6 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 $sb = { Invoke-Expression ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')) }
 Invoke-Command -ScriptBlock $sb -ComputerName $env:COMPUTERNAME -Credential $credential
 
-'Disabling UAC'
-$sb = { Set-ItemProperty -path HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System -name EnableLua -value 0 }
-Invoke-Command -ScriptBlock $sb -ComputerName $env:COMPUTERNAME -Credential $credential
-
 #"Install each Chocolatey Package"
 $chocoPackages.Split(';') | Sort-Object -Unique | ForEach-Object 
 {

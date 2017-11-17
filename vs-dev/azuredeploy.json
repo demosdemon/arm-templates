@@ -244,10 +244,10 @@
             "enabled": true,
             "storageUri": "[reference(resourceId(parameters('diagnosticsStorageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('diagnosticsStorageAccount')), '2017-10-01').primaryEndpoints.blob]"
           }
-        },
-        "identity": {
-          "type": "SystemAssigned"
         }
+      },
+      "identity": {
+        "type": "SystemAssigned"
       }
     },
     {

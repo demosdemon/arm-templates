@@ -2,6 +2,25 @@
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.1",
   "parameters": {
+    "diagnosticsStorageAccount": {
+      "type": "string",
+      "metadata": {
+        "description": "Where to store the diagnostics"
+      }
+    },
+    "diagnosticsStorageAccountResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource group containing the diagnostic storage account."
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Secrets passed to the VM"
+      }
+    }
     "storageAccountName": {
       "type": "string",
       "metadata": {
@@ -188,11 +207,6 @@
         "hardwareProfile": {
           "vmSize": "[parameters('vmSize')]"
         },
-        "osProfile": {
-          "computerName": "[parameters('vmName')]",
-          "adminUsername": "[parameters('vmAdminUsername')]",
-          "adminPassword": "[parameters('vmAdminPassword')]"
-        },
         "storageProfile": {
           "imageReference": {
             "publisher": "[variables('vmImagePublisher')]",
@@ -209,10 +223,30 @@
             "createOption": "FromImage"
           }
         },
+        "osProfile": {
+          "computerName": "[parameters('vmName')]",
+          "adminUsername": "[parameters('vmAdminUsername')]",
+          "adminPassword": "[parameters('vmAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true,
+            "timeZone": "Central Standard Time"
+          },
+          "secrets": "[parameters('secrets')]"
+        },
         "networkProfile": {
           "networkInterfaces": [{
             "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName'))]"
           }]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true,
+            "storageUri": "[reference(resourceId(parameters('diagnosticsStorageAccountResourceGroup'), 'Microsoft.Storage/accounts', parameters('diagnosticsStorageAccount')), '2017-03-30').primaryEndpoints.blob]"
+          }
+        },
+        "identity": {
+          "type": "SystemAssigned"
         }
       }
     },
@@ -238,7 +272,8 @@
       "apiVersion": "2017-03-30",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
+        "[resourceId('Microsoft.Resources/deployments', concat(parameters('vmName'), '-SetupDiagnostics')]"
       ],
       "tags": {
         "displayName": "BGInfo"
@@ -274,6 +309,32 @@
           ],
           "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -Fork -chocoPackages \"', parameters('chocoPackages'), '\"')]"
         }
+      }
+    },
+    {
+      "name": "[concat(parameters('vmName'), '-SetupDiagnostics')",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "properties": {
+        "templateLink": {
+          "uri": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Compute/virtualMachines/extensions/diagnostics.json",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[variables('location')]"
+          },
+          "virtualMachineName": {
+            "value": "[parameters('vmName')]"
+          },
+          "storageAccountResourceGroup": {
+            "value": "[parameters('diagnosticsStorageAccountResourceGroup')]"
+          },
+          "storageAccountName": {
+            "value": "[parameters('diagnosticsStorageAccount')]"
+          }
+        },
+        "mode": "Incremental"
       }
     }
   ],

@@ -242,7 +242,7 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": true,
-            "storageUri": "[reference(resourceId(parameters('diagnosticsStorageAccountResourceGroup'), 'Microsoft.Storage/accounts', parameters('diagnosticsStorageAccount')), '2017-03-30').primaryEndpoints.blob]"
+            "storageUri": "[reference(resourceId(parameters('diagnosticsStorageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('diagnosticsStorageAccount')), '2017-03-30').primaryEndpoints.blob]"
           }
         },
         "identity": {
@@ -272,8 +272,7 @@
       "apiVersion": "2017-03-30",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
-        "[resourceId('Microsoft.Resources/deployments', concat(parameters('vmName'), '-SetupDiagnostics'))]"
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
       ],
       "tags": {
         "displayName": "BGInfo"
@@ -291,8 +290,7 @@
       "apiVersion": "2017-03-30",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
-        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
       ],
       "tags": {
         "displayName": "SetupChocolatey"
@@ -315,6 +313,9 @@
       "name": "[concat(parameters('vmName'), '-SetupDiagnostics')",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2017-05-10",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+      ],
       "properties": {
         "templateLink": {
           "uri": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Compute/virtualMachines/extensions/diagnostics.json",

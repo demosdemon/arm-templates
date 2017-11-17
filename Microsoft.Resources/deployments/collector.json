@@ -1,6 +1,6 @@
 {
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
+  "contentVersion": "1.0.0.1",
   "parameters": {
     "source": {
       "type": "array"
@@ -40,7 +40,7 @@
       }
     },
     {
-      "name": "[concat('loop-', copyindex(1))]",
+      "name": "[concat('loop-', copyIndex(1))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2017-05-10",
       "dependsOn": ["loop-0"],
@@ -52,7 +52,8 @@
       "properties": {
         "mode": "Incremental",
         "templateLink": {
-          "uri": "[parameters('transformTemplateUri')]"
+          "uri": "[parameters('transformTemplateUri')]",
+          "contentVersion": "1.0.0.0"
         },
         "parameters": {
           "source": {

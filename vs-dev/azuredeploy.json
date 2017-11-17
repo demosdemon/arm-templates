@@ -195,7 +195,7 @@
       "name": "[parameters('vmName')]",
       "type": "Microsoft.Compute/virtualMachines",
       "location": "[variables('location')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2017-03-30",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
         "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNicName'))]"

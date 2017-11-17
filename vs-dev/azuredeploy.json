@@ -10,6 +10,7 @@
     },
     "diagnosticsStorageAccountResourceGroup": {
       "type": "string",
+      "defaultValue": "[resourceGroup().name]",
       "metadata": {
         "description": "The resource group containing the diagnostic storage account."
       }
@@ -108,7 +109,7 @@
       "metadata": {
         "description": "The location of resources, such as templates and DSC modules, that the template depends on"
       },
-      "defaultValue": "https://raw.githubusercontent.com/demosdemon/azure-quickstart-templates/master/vs-dev"
+      "defaultValue": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev"
     },
     "_artifactsLocationSasToken": {
       "type": "securestring",
@@ -120,9 +121,9 @@
     "_artifacts": {
       "type": "array",
       "defaultValue": [
-        "scripts/Setup.ps1",
-        "scripts/SetupChocolatey.ps1",
-        "secrets/isesteroids.license.enc"
+        "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev/scripts/Setup.ps1",
+        "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev/scripts/SetupChocolatey.ps1",
+        "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev/secrets/isesteroids.license.enc"
       ]
     }
   },
@@ -140,14 +141,7 @@
     "vmNicName": "[concat(parameters('vmName'), 'NIC01')]",
     "vmIP01Name": "[concat(parameters('vmName'), 'IP01')]",
     "vmIP01Ref": "[resourceID('Microsoft.Network/publicIPAddresses', variables('vmIP01Name'))]",
-    "location": "[resourceGroup().location]",
-    "copy": [{
-      "name": "files",
-      "count": "[length(parameters('_artifacts'))]",
-      "input": {
-        "value": "[concat(parameters('_artifactsLocation'), parameters('_artifacts')[copyIndex('files')], parameters('_artifactsLocationSasToken'))]"
-      }
-    }]
+    "location": "[resourceGroup().location]"
   },
   "resources": [{
       "name": "[parameters('storageAccountName')]",
@@ -313,8 +307,7 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
-        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]",
-        "FileUriCollector"
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
       ],
       "tags": {
         "displayName": "SetupChocolatey"
@@ -325,7 +318,7 @@
         "typeHandlerVersion": "1.9",
         "autoUpgradeMinorVersion": true,
         "settings": {
-          "fileUris": "[reference('FileUriCollector', '2017-05-10').outputs.result.value]",
+          "fileUris": "[parameters('_artifacts')]",
           "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -chocoPackages \"', parameters('chocoPackages'), '\"')]"
         }
       }
@@ -357,26 +350,6 @@
           }
         },
         "mode": "Incremental"
-      }
-    },
-    {
-      "name": "FileUriCollector",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2017-05-10",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Resources/deployments/collector.json",
-          "contentVersion": "1.0.0.1"
-        },
-        "parameters": {
-          "source": {
-            "value": "[variables('files')]"
-          },
-          "transformTemplateUri": {
-            "value": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Resources/deployments/selectValue.json"
-          }
-        }
       }
     }
   ],

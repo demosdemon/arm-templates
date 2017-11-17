@@ -2,17 +2,20 @@
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "dnsLabelPrefix": {
+    "diagnosticsStorageAccount": {
+      "value": "GEN-UNIQUE-13"
+    },
+    "storageAccountName": {
       "value": "GEN-UNIQUE-13"
     },
     "storageType": {
       "value": "Premium_LRS"
     },
     "vmName": {
-      "value": "VSVM"
+      "value": "vsvm"
     },
     "vmAdminUserName": {
-      "value": "YourAdminName"
+      "value": "Administrator"
     },
     "vmAdminPassword": {
       "value": "GEN-PASSWORD"
@@ -21,10 +24,13 @@
       "value": "Standard_DS2"
     },
     "vmVisualStudioVersion": {
-      "value": "VS-2015-Comm-AzureSDK-2.9-W10T-Win10-N"
+      "value": "VS-2017-Comm-WS2016"
+    },
+    "dnsLabelPrefix": {
+      "value": "GEN-UNIQUE-13"
     },
     "chocoPackages": {
-      "value": "sysinternals"
+      "value": "sysinternals;notepadplusplus;sourcetree"
     }
   }
 }

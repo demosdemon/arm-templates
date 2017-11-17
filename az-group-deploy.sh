@@ -186,7 +186,7 @@ if $uploadArtifacts; then
 
     while read -d $'\0' -r filepath; do
         relFilePath=$(relpath "$filepath" "$artifactsStagingDirectory")
-        artifacts=$(append "$artifacts" "$(escape "$relFilePath")")
+        artifacts=$(append "$artifacts" "$(escape "$blobEndpoint$artifactsStorageContainerName/$relFilePath?$sasToken")")
         md5=$(md5 "$filepath")
         az_md5=$(az storage blob show --container "$artifactsStorageContainerName" -n "$relFilePath" --account-name "$artifactsStorageAccountName" --account-key "$artifactsStorageAccountKey" -o json | jq -r '.properties.contentSettings.contentMd5')
         if [[ "$md5" != "$az_md5" ]]; then

@@ -19,7 +19,7 @@
   "outputs": {
     "result": {
       "type": "array",
-      "value": "[concat(parameters('state'), variables('instance'))]"
+      "value": "[concat(parameters('state'), createArray(variables('instance')))]"
     }
   }
 }

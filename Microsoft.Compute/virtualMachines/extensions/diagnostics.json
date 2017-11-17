@@ -31,7 +31,7 @@
   },
   "variables": {
     "virtualMachineId": "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]",
-    "storageAccountId": "[resourceId(variables('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+    "storageAccountId": "[resourceId(parameters('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
     "extensionName": "[concat(parameters('virtualMachineName'), '/DiagnosticsExtension')]"
   },
   "resources": [{

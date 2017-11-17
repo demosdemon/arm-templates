@@ -272,7 +272,8 @@
       "apiVersion": "2017-03-30",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
+        "[resourceId('Microsoft.Resources/deployments', concat(parameters('vmName'), '-SetupDiagnostics'))]"
       ],
       "tags": {
         "displayName": "BGInfo"
@@ -290,7 +291,8 @@
       "apiVersion": "2017-03-30",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
       ],
       "tags": {
         "displayName": "SetupChocolatey"
@@ -310,7 +312,7 @@
       }
     },
     {
-      "name": "[concat(parameters('vmName'), '-SetupDiagnostics')",
+      "name": "[concat(parameters('vmName'), '-SetupDiagnostics')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2017-05-10",
       "dependsOn": [

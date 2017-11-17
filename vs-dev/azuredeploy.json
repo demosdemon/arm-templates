@@ -307,7 +307,7 @@
             "[concat(parameters('_artifactsLocation'), '/scripts/Setup.ps1', parameters('_artifactsLocationSasToken'))]",
             "[concat(parameters('_artifactsLocation'), '/scripts/SetupChocolatey.ps1', parameters('_artifactsLocationSasToken'))]"
           ],
-          "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -Fork -chocoPackages \"', parameters('chocoPackages'), '\"')]"
+          "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -chocoPackages \"', parameters('chocoPackages'), '\"')]"
         }
       }
     },

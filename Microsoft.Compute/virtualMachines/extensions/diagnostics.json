@@ -39,9 +39,6 @@
     "type": "Microsoft.Compute/virtualMachines/extensions",
     "apiVersion": "2017-03-30",
     "location": "[parameters('location')]",
-    "dependsOn": [
-      "[variables('virtualMachineId')]"
-    ],
     "properties": {
       "publisher": "Microsoft.Azure.Diagnostics",
       "type": "IaaSDiagnostics",

@@ -20,7 +20,7 @@
       "metadata": {
         "description": "Secrets passed to the VM"
       }
-    }
+    },
     "storageAccountName": {
       "type": "string",
       "metadata": {

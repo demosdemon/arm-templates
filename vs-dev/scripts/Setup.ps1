@@ -129,6 +129,12 @@ function Start-Task {
     param(
     )
 
+    if (Test-Path C:\SetupComplete) {
+        return
+    }
+
+    $response = Invoke-WebRequest -Uri http://localhost:50342/oauth2/token -Method GET -Body @{resource="https://management.azure.com/"} -Headers @{Metadata="true"}
+
     Write-Log -Message 'Disabling Internet Explorer Enhansed Security Configuration'
     Disable-InternetExplorerESC
 
@@ -173,6 +179,8 @@ function Start-Task {
     {
         Write-Log -Message ('Failed installing ReSharper Ultimate {0}' -f $_)
     }
+
+    Get-Date | Out-File -FilePath C:\SetupComplete
 }
 
 if ($Fork) {

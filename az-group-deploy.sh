@@ -141,7 +141,7 @@ fi
 parameterJson=$( jq -c '.parameters' "$parametersFile" )
 
 if [[ -z $uploadArtifacts ]]; then
-    uploadArtifacts=$(jq 'has("_artifactsLocation") and has("_artifactsLocationSasToken")' <<< "$parameterJson")
+    uploadArtifacts=$(jq '.parameters | has("_artifactsLocation") and has("_artifactsLocationSasToken")' "$templateFile")
 fi
 
 
@@ -197,7 +197,7 @@ if $uploadArtifacts; then
     done < <(find "$artifactsStagingDirectory" -type f -print0)
 
     # shellcheck disable=SC2091
-    if "$(jq 'has("_artifacts")' <<< "$parameterJson")"; then
+    if "$(jq '.parameters | has("_artifacts")' "$templateFile")"; then
         parameterJson=$(addKey "$parameterJson" _artifacts "{value: $artifacts}")
     fi
 

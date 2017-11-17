@@ -1,0 +1,74 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "source": {
+      "type": "array"
+    },
+    "transformTemplateUri": {
+      "type": "string",
+      "defaultValue": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Resources/deployments/selectValue.json"
+    },
+    "state": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "variables": {
+    "count": "[length('source')]"
+  },
+  "resources": [{
+      "name": "loop-0",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "properties": {
+        "mode": "Incremental",
+        "parameters": {},
+        "template": {
+          "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {},
+          "variables": {},
+          "resources": [],
+          "outputs": {
+            "result": {
+              "type": "array",
+              "value": "[parameters('state')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "[concat('loop-', copyindex(1))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "dependsOn": ["loop-0"],
+      "copy": {
+        "name": "iterator",
+        "count": "[variables('count')]",
+        "mode": "serial"
+      },
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[parameters('transformTemplateUri')]"
+        },
+        "parameters": {
+          "source": {
+            "value": "[parameters('source')[copyIndex()]]"
+          },
+          "state": {
+            "value": "[reference(concat('loop-', copyIndex()), '2017-05-10').outputs.result.value]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "result": {
+      "type": "array",
+      "value": "[reference(concat('loop-', variables('count')), '2017-05-10').outputs.result.value]"
+    }
+  }
+}

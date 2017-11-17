@@ -142,9 +142,11 @@
     "vmIP01Ref": "[resourceID('Microsoft.Network/publicIPAddresses', variables('vmIP01Name'))]",
     "location": "[resourceGroup().location]",
     "copy": [{
-      "name": "fileUris",
+      "name": "files",
       "count": "[length(parameters('_artifacts'))]",
-      "input": "[concat(parameters('_artifactsLocation'), parameters('_artifacts')[copyIndex('fileUris')], parameters('_artifactsLocationSasToken'))]"
+      "input": {
+        "value": "[concat(parameters('_artifactsLocation'), parameters('_artifacts')[copyIndex('files')], parameters('_artifactsLocationSasToken'))]"
+      }
     }]
   },
   "resources": [{
@@ -312,6 +314,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
         "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
+        "FileUriCollector"
       ],
       "tags": {
         "displayName": "SetupChocolatey"
@@ -322,7 +325,7 @@
         "typeHandlerVersion": "1.9",
         "autoUpgradeMinorVersion": true,
         "settings": {
-          "fileUris": "[variables('fileUris')]",
+          "fileUris": "[reference('FileUriCollector', '2017-05-10').outputs.result.value]",
           "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -chocoPackages \"', parameters('chocoPackages'), '\"')]"
         }
       }
@@ -336,7 +339,7 @@
       ],
       "properties": {
         "templateLink": {
-          "uri": "https://raw.githubusercontent.com/demosdemon/arm-templates/fee55ca3a921fd9677035e52095912f12b637362/Microsoft.Compute/virtualMachines/extensions/diagnostics.json",
+          "uri": "https: //raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Compute/virtualMachines/extensions/diagnostics.json",
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
@@ -354,6 +357,25 @@
           }
         },
         "mode": "Incremental"
+      }
+    },
+    {
+      "name": "FileUriCollector",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Resources/deployments/collector.json"
+        },
+        "parameters": {
+          "source": {
+            "value": "[variables('files')]"
+          },
+          "transformTemplateUri": {
+            "value": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Resources/deployments/selectValue.json"
+          }
+        }
       }
     }
   ],

@@ -273,7 +273,7 @@
       "location": "[variables('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
-        "[resourceId('Microsoft.Resources/deployments', concat(parameters('vmName'), '-SetupDiagnostics')]"
+        "[resourceId('Microsoft.Resources/deployments', concat(parameters('vmName'), '-SetupDiagnostics'))]"
       ],
       "tags": {
         "displayName": "BGInfo"

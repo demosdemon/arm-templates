@@ -7,7 +7,11 @@ param(
 
   [switch]$Fork,
 
-  [string]$chocoPackages = ''
+  [string]$InstallModules = '',
+
+  [string]$chocoPackages = '',
+
+  [string]$CertificateThumbprint = '0E16BB33DB11773999FE2848D881D02103BD6B29'
 )
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
@@ -25,9 +29,8 @@ Get-Date | Out-String | Out-File -FilePath $LogFile
 $vs_url = 'https://aka.ms/vs/15/release/vs_community.exe'
 $rs_url = 'https://lbcdropbox.blob.core.windows.net/dependencies/windows/development/jetbrains.exe?st=2017-11-15T22%3A37Z&se=2018-02-15T22%3A07Z&sp=r&sv=2017-04-17&sr=c&sig=7WszV6xUvS1BrK0hkOqQgqK1Y%2BnMp47uvVcQW/mtSk0%3D'
 
-$modules = @(
-  'ISESteroids', 'PSWindowsUpdate'
-)
+$modules = @('ISESteroids', 'PSWindowsUpdate') + ($InstallModules.Split(';') | Sort-Object -Unique)
+$chocoPackages = ('linqpad;sysinternals;fiddler4;visualstudiocode;' + $chocoPackages)
 
 #region Functions
 
@@ -155,7 +158,7 @@ function Select-PKCS7Data {
   }
 }
 
-function Decrypt-File {
+function Unprotect-File {
   param(
     [Parameter(Mandatory, Position=0)]
     [Alias('Cert')]
@@ -180,6 +183,62 @@ function Decrypt-File {
   }
 }
 
+function Invoke-UnprotectFile {
+  param(
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [ValidateScript({ $_.Exists })]
+    [IO.FileInfo] $FilePath
+  )
+  
+  begin {
+    $cert = Get-Item -Path Cert:\LocalMachine\My\$CertificateThumbprint
+    if ($cert -eq $null) {
+      throw "No Certificate!"
+    }
+  }
+  
+  process {
+    if ($FilePath.Extension -ne '.enc') 
+    {
+      return
+    }
+    
+    $baseName = $FilePath.Directory.FullName + '\' + $FilePath.BaseName
+    $decrypted = $FilePath | Unprotect-File -Certificate $cert
+    [IO.File]::WriteAllBytes($baseName, $decrypted)
+    [IO.FileInfo]$baseName
+  }
+}
+
+function Invoke-InstallModule {
+  param(
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [string] $Module
+  )
+  process {
+    Write-Log -Message ('Installing {0}' -f $Module)
+    Install-Module -Name $Module -Force | Write-Log
+    Write-Log -Message Done.
+  }
+}
+
+function Add-ISESteroidsLicense {
+  param(
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [IO.FileInfo]$FilePath
+  )
+  process {
+    if ($FilePath.Name -ne 'isesteroids.license') { return }
+    
+    $outDir = Get-Item -Path "$env:ProgramFiles\WindowsPowerShell\Modules\ISESteroids\*\License"
+    if ($outDir -eq $null) {
+      Write-Warning -Message 'No ISESteroids module directory to place license.'
+    } else {
+      $null = Copy-Item -Path $FilePath.FullName -Destination $outDir.FullName
+    }
+  }
+}
+
 function Start-Task {
   [CmdletBinding()]
   param(
@@ -195,42 +254,25 @@ function Start-Task {
   Update-Help -Module * -Force -ErrorAction Ignore
 
   Write-Log -Message 'Installing NuGet Package Provider'
-  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force |
-  Write-Log
+  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Write-Log
+  
+  Write-Log -Message 'Installing Modules'
+  $Modules | Invoke-InstallModule
+  
+  Write-Log -Message 'Decrypting Secrets'
+  $files = Get-ChildItem -Path $PSScriptRoot\..\secrets -Filter '*.enc' | Invoke-UnprotectFile
+  
+  Write-Log -Message 'Copying ISESteroids License'
+  $files | Add-ISESteroidsLicense  
 
-  foreach ($mod in $Modules) {
-    Write-Log -Message ('Installing {0}' -f $mod)
-    Install-Module -Name $mod -Force |
-    Write-Log
-    Write-Log -Message 'Done.'
-  }
-
-  $cert = Get-ChildItem -Path Cert:\LocalMachine\My\0E16BB33DB11773999FE2848D881D02103BD6B29
-  if ($cert -eq $null) 
-  {
-    Write-Warning -Message 'Cannot decrypt secrets!'
-  }
-  else
-  {
-    $license = [Text.Encoding]::ASCII.GetString((Decrypt-File -Certificate $cert -FilePath ('{0}\..\secrets\isesteroids.license.enc' -f $PSScriptRoot)))
-    $dir = Get-Item -Path "$env:ProgramFiles\WindowsPowerShell\Modules\ISESteroids\*\License"
-    if ($dir -eq $null) 
-    {
-      Write-Warning -Message 'Cannot place license file!'
-    }
-    $license | Out-File -Encoding ascii -FilePath ('{0}\isesteroids.license' -f $dir.FullName)
-  }
-
-  & "$PSScriptRoot\SetupChocolatey.ps1" -chocoPackages ('linqpad;sysinternals;fiddler4;visualstudiocode;' + $chocoPackages) |
-  Write-Log
+  Write-Log -Message 'Setting up Chocolatet'
+  & "$PSScriptRoot\SetupChocolatey.ps1" -chocoPackages $chocoPackages | Write-Log
 
   Write-Log -Message 'Adding Microsoft Update Service'
-  Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -Confirm:$false |
-  Write-Log
+  Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -Confirm:$false | Write-Log
 
   Write-Log -Message 'Running Windows Updates'
-  Get-WindowsUpdate -IgnoreReboot -Install -AcceptAll -MicrosoftUpdate |
-  Write-Log
+  Get-WindowsUpdate -IgnoreReboot -Install -AcceptAll -MicrosoftUpdate | Write-Log
 
   # https://github.com/MicrosoftDocs/visualstudio-docs/blob/master/docs/install/use-command-line-parameters-to-install-visual-studio.md
   $vs_args = '--all', '--includeRecommended', '--includeOptional', '--wait', '--quiet'
@@ -262,8 +304,8 @@ Start-Task
 # SIG # Begin signature block
 # MIINKgYJKoZIhvcNAQcCoIINGzCCDRcCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUE5vR7hwt/TzxYF/J59rKPdS9
-# Xf2gggpsMIIFMDCCBBigAwIBAgIQBAkYG1/Vu2Z1U0O1b5VQCDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7qWdXIQrZ8ZPbSpQlj7bjhQl
+# lGmgggpsMIIFMDCCBBigAwIBAgIQBAkYG1/Vu2Z1U0O1b5VQCDANBgkqhkiG9w0B
 # AQsFADBlMQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYD
 # VQQLExB3d3cuZGlnaWNlcnQuY29tMSQwIgYDVQQDExtEaWdpQ2VydCBBc3N1cmVk
 # IElEIFJvb3QgQ0EwHhcNMTMxMDIyMTIwMDAwWhcNMjgxMDIyMTIwMDAwWjByMQsw
@@ -324,11 +366,11 @@ Start-Task
 # ZCBJRCBDb2RlIFNpZ25pbmcgQ0ECEAZTKMxhpmCCP3m9rLmZ8/owCQYFKw4DAhoF
 # AKB4MBgGCisGAQQBgjcCAQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisG
 # AQQBgjcCAQQwHAYKKwYBBAGCNwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcN
-# AQkEMRYEFGnur7JlOHQ4PRhkz0MYX05dJJ/8MA0GCSqGSIb3DQEBAQUABIIBAJ6O
-# cHc+ZfCF+2gf1L5esgVAZimxUAScsXp1g+P0efojsD3arIvlyLPG3vKgm+g2f3GY
-# 5jKBVow0T4IEGrU69K7JPsM2V3LaD/Ad6osx6hQXDKTPswUi2sgHCGZx/NrYoxKQ
-# odxnJl4V+yDqXGLCL6W/PAY6IVNp3SBRxgsYGZgP+BkOVSlRJ5X7mr3ID7Q6Yd4T
-# ZihDu/toK/SSOuE8ppJEm2784NlxU4ZOqpWwFn4xp53Z6zypWg0fLHvQ0UgvOzB1
-# H5BHVs1aDNiUpADBqZ3PmR26L5vEhWbF7tDuIWP2u2seboPXF3ZnnQdxMOLkFGfY
-# c9CV9wC8tUwckFzUySg=
+# AQkEMRYEFMrdHF2jWUyrVjp7DjoY6682gfwlMA0GCSqGSIb3DQEBAQUABIIBAFVr
+# xBtCqglh/Hadl2MZqidb3Ae4tGC4XrSQ/sUyLQsrRdYNIaHCLlNfN3tT1xYyMOIr
+# xNOatzP3n3w5I7O3C2RMYkGIA/GYGRByzGZ+EXCddazjPXpVBAQjEesemwhJBoR4
+# jxrissM3teH8dLn3gSWHLVqWQOXFzi0ihBcxcOvGgWPCoZ5RQN3K7EVfJUwWlOxx
+# /vNspwrE4ZcHNUe15OqVF1l9Nd37POf1Z59vUH7VXeQwW42PQNYux0u0jz4dB0It
+# okE5Y7LOn5Eg0fHmrKijNgsyHQ9FBnM6jDnedqhDfo3FqevxKDc4z45SCo6tV/7k
+# Quid+QRampzzNLnmDW4=
 # SIG # End signature block

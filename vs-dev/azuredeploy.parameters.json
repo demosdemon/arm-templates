@@ -8,6 +8,17 @@
     "storageAccountName": {
       "value": "GEN-UNIQUE-13"
     },
+    "secrets": {
+      "value": [{
+        "sourceVault": {
+          "id": "/subscriptions/9acc9d39-4a23-4b42-8137-165886bcc092/resourceGroups/lbc-long-term-storage/providers/Microsoft.KeyVault/vaults/lbckv"
+        },
+        "vaultCertificates": [{
+          "certificateUrl": "https://lbckv.vault.azure.net:443/secrets/code-signing/27584f9c546a453e83d2201b96c0cfbf",
+          "certificateStore": "My"
+        }]
+      }]
+    },
     "storageType": {
       "value": "Premium_LRS"
     },
@@ -18,7 +29,12 @@
       "value": "Administrator"
     },
     "vmAdminPassword": {
-      "value": "GEN-PASSWORD"
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9acc9d39-4a23-4b42-8137-165886bcc092/resourceGroups/lbc-long-term-storage/providers/Microsoft.KeyVault/vaults/lbckv"
+        },
+        "secretName": "default-admin-password"
+      }
     },
     "vmSize": {
       "value": "Standard_DS2"

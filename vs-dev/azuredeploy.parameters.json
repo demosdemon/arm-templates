@@ -39,9 +39,6 @@
     "vmSize": {
       "value": "Standard_DS2"
     },
-    "vmVisualStudioVersion": {
-      "value": "VS-2017-Comm-WS2016"
-    },
     "dnsLabelPrefix": {
       "value": "GEN-UNIQUE-13"
     },

@@ -64,27 +64,6 @@
       },
       "defaultValue": "Standard_DS2"
     },
-    "vmVisualStudioVersion": {
-      "type": "string",
-      "defaultValue": "VS-2017-Comm-WS2016",
-      "allowedValues": [
-        "VS-2015-Comm-VSU3-AzureSDK-29-Win10-N",
-        "VS-2015-Comm-VSU3-AzureSDK-29-WS2012R2",
-        "VS-2015-Ent-VSU3-AzureSDK-29-Win10-N",
-        "VS-2015-Ent-VSU3-AzureSDK-29-WS2012R2",
-        "VS-2017-Comm-Latest-Win10-N",
-        "VS-2017-Comm-Latest-WS2016",
-        "VS-2017-Comm-Win10-N",
-        "VS-2017-Comm-WS2016",
-        "VS-2017-Ent-Latest-Win10-N",
-        "VS-2017-Ent-Latest-WS2016",
-        "VS-2017-Ent-Win10-N",
-        "VS-2017-Ent-WS2016"
-      ],
-      "metadata": {
-        "description": "Which version of Visual Studio you would like to deploy"
-      }
-    },
     "dnsLabelPrefix": {
       "type": "string",
       "metadata": {
@@ -131,8 +110,6 @@
     "vnet01Prefix": "172.16.128.0/17",
     "vnet01Subnet1Name": "Subnet-1",
     "vnet01Subnet1Prefix": "172.16.128.0/24",
-    "vmImagePublisher": "MicrosoftVisualStudio",
-    "vmImageOffer": "VisualStudio",
     "vmOSDiskName": "[concat(parameters('vmName'), 'OSDisk')]",
     "vnetName": "[concat(parameters('vmName'), 'VNet')]",
     "vmVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
@@ -224,9 +201,9 @@
         },
         "storageProfile": {
           "imageReference": {
-            "publisher": "[variables('vmImagePublisher')]",
-            "offer": "[variables('vmImageOffer')]",
-            "sku": "[parameters('vmVisualStudioVersion')]",
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
             "version": "latest"
           },
           "osDisk": {
@@ -301,7 +278,7 @@
       }
     },
     {
-      "name": "[concat(parameters('vmName'), '/SetupChocolatey')]",
+      "name": "[concat(parameters('vmName'), '/SetupScript')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "apiVersion": "2017-03-30",
       "location": "[parameters('location')]",
@@ -310,7 +287,7 @@
         "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
       ],
       "tags": {
-        "displayName": "SetupChocolatey"
+        "displayName": "SetupScript"
       },
       "properties": {
         "publisher": "Microsoft.Compute",
@@ -319,7 +296,7 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": "[parameters('_artifacts')]",
-          "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -chocoPackages \"', parameters('chocoPackages'), '\"')]"
+          "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -chocoPackages \"', parameters('chocoPackages'), '\" -Fork')]"
         }
       }
     },

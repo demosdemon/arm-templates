@@ -3,7 +3,7 @@
 param(
   [string]$TimeZoneName = 'Central Standard Time',
 
-  [string]$LogFile = "$env:HOMEDRIVE\SetupLog.txt",
+  [string]$LogFile = $null,
 
   [switch]$Fork,
 
@@ -11,12 +11,22 @@ param(
 
   [string]$chocoPackages = '',
 
-  [string]$CertificateThumbprint = '0E16BB33DB11773999FE2848D881D02103BD6B29'
+  [string]$CertificateThumbprint = '0E16BB33DB11773999FE2848D881D02103BD6B29',
+
+  [Parameter(Mandatory)]
+  [string]$AdminUserName,
+
+  [Parameter(Mandatory)]
+  [string]$AdminPassword
 )
 $VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName System.Security
+
+if (-not $LogFile) {
+    $LogFile = '{0}\SetupLog-{1}.txt' -f $env:HOMEDRIVE, (Get-Date -Format yyyy-MM-dd-HH-mm-ss)
+}
 
 trap{
   $_ | Out-String | Out-File -Append -FilePath $LogFile
@@ -29,7 +39,9 @@ Get-Date | Out-String | Out-File -FilePath $LogFile
 $vs_url = 'https://aka.ms/vs/15/release/vs_professional.exe'
 $rs_url = 'https://lbcdropbox.blob.core.windows.net/dependencies/windows/development/jetbrains.exe?st=2017-11-15T22%3A37Z&se=2018-02-15T22%3A07Z&sp=r&sv=2017-04-17&sr=c&sig=7WszV6xUvS1BrK0hkOqQgqK1Y%2BnMp47uvVcQW/mtSk0%3D'
 
-$modules = @('ISESteroids', 'PSWindowsUpdate') + ($InstallModules.Split(';') | Sort-Object -Unique)
+$modules = (@('ISESteroids', 'PSWindowsUpdate') + $InstallModules.Split(';')) |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+    Sort-Object -Unique
 $chocoPackages = ('linqpad;sysinternals;fiddler4;visualstudiocode;' + $chocoPackages)
 
 #region Functions
@@ -244,6 +256,16 @@ function Start-Task {
   param(
   )
 
+  if (Test-Path $env:HOMEDRIVE\SetupComplete.txt)
+  {
+      return
+  }
+
+  Write-Log -Message 'Resizing main partition'
+  $size = Get-PartitionSupportedSize -DiskNumber 0 -PartitionNumber 1
+  Resize-Partition -DiskNumber 0 -PartitionNumber 1 -Size $size.SizeMax
+  Get-Partition -DiskNumber 0 -PartitionNumber 1 | Write-Log
+
   Write-Log -Message 'Disabling Internet Explorer Enhansed Security Configuration'
   Disable-InternetExplorerESC
 
@@ -266,7 +288,7 @@ function Start-Task {
   $files | Add-ISESteroidsLicense
 
   Write-Log -Message 'Setting up Chocolatet'
-  & "$PSScriptRoot\SetupChocolatey.ps1" -chocoPackages $chocoPackages | Write-Log
+  & "$PSScriptRoot\SetupChocolatey.ps1" -chocoPackages $chocoPackages -AdminUserName $AdminUserName -AdminPassword $AdminPassword | Write-Log
 
   Write-Log -Message 'Adding Microsoft Update Service'
   Add-WUServiceManager -ServiceID 7971f918-a847-4430-9279-4a52d1efe18d -Confirm:$false | Write-Log
@@ -287,6 +309,8 @@ function Start-Task {
   {
     Write-Log -Message ('Failed installing ReSharper Ultimate {0}' -f $_)
   }
+
+  Get-Date | Out-File -Path $env:HOMEDRIVE\SetupComplete.txt
 }
 
 #endregion

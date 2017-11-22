@@ -1,0 +1,68 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmName": {
+      "type": "string",
+      "metadata": {
+        "description": "Local name for the VM can be whatever you want"
+      }
+    },
+    "vmAdminUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "VM admin user name"
+      }
+    },
+    "vmAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "VM admin password. The supplied password must be between 8-123 characters long and must satisfy at least 3 of password complexity requirements from the following: 1) Contains an uppercase character 2) Contains a lowercase character 3) Contains a numeric digit 4) Contains a special character."
+      }
+    },
+    "chocoPackages": {
+      "type": "string",
+      "metadata": {
+        "description": "List of Chocolatey packages to install separated by a semi-colon eg. linqpad;sysinternals"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "the location for all the resources."
+      }
+    },
+    "_artifacts": {
+      "type": "array",
+      "defaultValue": [
+        "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev/scripts/Setup.ps1",
+        "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev/scripts/SetupChocolatey.ps1",
+        "https://raw.githubusercontent.com/demosdemon/arm-templates/master/vs-dev/secrets/isesteroids.license.enc"
+      ]
+    }
+  },
+  "variables": {
+
+  },
+  "resources": [{
+    "name": "[concat(parameters('vmName'), '/SetupScript')]",
+    "type": "Microsoft.Compute/virtualMachines/extensions",
+    "apiVersion": "2017-03-30",
+    "location": "[parameters('location')]",
+    "tags": {
+      "displayName": "SetupScript"
+    },
+    "properties": {
+      "publisher": "Microsoft.Compute",
+      "type": "CustomScriptExtension",
+      "typeHandlerVersion": "1.9",
+      "autoUpgradeMinorVersion": true,
+      "settings": {
+        "fileUris": "[parameters('_artifacts')]",
+        "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -AdminUserName ', parameters('vmAdminUserName'), ' -AdminPassword \"', parameters('vmAdminPassword'), '\" -chocoPackages \"', parameters('chocoPackages'), '\" -Fork')]"
+      }
+    }
+  }],
+  "outputs": {}
+}

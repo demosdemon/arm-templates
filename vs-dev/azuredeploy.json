@@ -1,6 +1,6 @@
 {
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.1",
+  "contentVersion": "1.0.0.2",
   "parameters": {
     "diagnosticsStorageAccount": {
       "type": "string",
@@ -112,13 +112,34 @@
     "vnet01Subnet1Prefix": "172.16.128.0/24",
     "vmOSDiskName": "[concat(parameters('vmName'), 'OSDisk')]",
     "vnetName": "[concat(parameters('vmName'), 'VNet')]",
+    "nsgName": "[concat(variables('vnetName'), '-nsg')]",
     "vmVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
     "vmSubnetRef": "[concat(variables('VMVnetID'), '/subnets/', variables('Vnet01Subnet1Name'))]",
     "vmStorageAccountContainerName": "vhds",
     "vmNicName": "[concat(parameters('vmName'), 'NIC01')]",
     "vmIP01Name": "[concat(parameters('vmName'), 'IP01')]",
     "vmIP01Ref": "[resourceID('Microsoft.Network/publicIPAddresses', variables('vmIP01Name'))]",
-    "location": "[resourceGroup().location]"
+    "nsgRules": [{
+        "name": "allow-rdp",
+        "protocol": "*",
+        "ports": "3389"
+      },
+      {
+        "name": "allow-http",
+        "protocol": "Tcp",
+        "ports": "80"
+      },
+      {
+        "name": "allow-https",
+        "protocol": "Tcp",
+        "ports": "443"
+      },
+      {
+        "name": "allow-winrm",
+        "protocol": "Tcp",
+        "ports": "5986"
+      }
+    ]
   },
   "resources": [{
       "name": "[parameters('storageAccountName')]",
@@ -157,18 +178,48 @@
       }
     },
     {
+      "apiVersion": "2017-03-01",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('nsgName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "copy": [{
+          "name": "securityRules",
+          "count": "[length(variables('nsgRules'))]",
+          "input": {
+            "name": "[variables('nsgRules')[copyIndex('securityRules')].name]",
+            "properties": {
+              "description": "[variables('nsgRules')[copyIndex('securityRules')].name]",
+              "protocol": "[variables('nsgRules')[copyIndex('securityRules')].protocol]",
+              "sourcePortRange": "*",
+              "destinationPortRange": "[variables('nsgRules')[copyIndex('securityRules')].ports]",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": "[copyIndex('securityRules', 1000)]",
+              "direction": "Inbound"
+            }
+          }
+        }]
+      }
+    },
+    {
       "name": "[variables('vmNicName')]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[parameters('location')]",
       "apiVersion": "2015-06-15",
       "dependsOn": [
         "[variables('vmVnetID')]",
-        "[variables('vmIP01Ref')]"
+        "[variables('vmIP01Ref')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
       ],
       "tags": {
         "displayName": "VMNic01"
       },
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+        },
         "ipConfigurations": [{
           "name": "ipconfig1",
           "properties": {
@@ -212,7 +263,8 @@
               "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '2015-06-15').primaryEndpoints.blob, variables('vmStorageAccountContainerName'), '/', variables('vmOSDiskName'), '.vhd')]"
             },
             "caching": "ReadWrite",
-            "createOption": "FromImage"
+            "createOption": "FromImage",
+            "diskSizeGB": 250
           }
         },
         "osProfile": {
@@ -278,29 +330,6 @@
       }
     },
     {
-      "name": "[concat(parameters('vmName'), '/SetupScript')]",
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "apiVersion": "2017-03-30",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
-        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
-      ],
-      "tags": {
-        "displayName": "SetupScript"
-      },
-      "properties": {
-        "publisher": "Microsoft.Compute",
-        "type": "CustomScriptExtension",
-        "typeHandlerVersion": "1.9",
-        "autoUpgradeMinorVersion": true,
-        "settings": {
-          "fileUris": "[parameters('_artifacts')]",
-          "commandToExecute": "[concat('powershell -ExecutionPolicy bypass -File .\\scripts\\Setup.ps1 -chocoPackages \"', parameters('chocoPackages'), '\" -Fork')]"
-        }
-      }
-    },
-    {
       "name": "[concat(parameters('vmName'), '-SetupDiagnostics')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2017-05-10",
@@ -308,6 +337,7 @@
         "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
       ],
       "properties": {
+        "mode": "Incremental",
         "templateLink": {
           "uri": "https://raw.githubusercontent.com/demosdemon/arm-templates/master/Microsoft.Compute/virtualMachines/extensions/diagnostics.json",
           "contentVersion": "1.0.0.0"
@@ -325,8 +355,43 @@
           "storageAccountName": {
             "value": "[parameters('diagnosticsStorageAccount')]"
           }
+        }
+      }
+    },
+    {
+      "name": "[concat(parameters('vmName'), '-SetupScript')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'BGInfo')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/subtemplates/setupscript.json', parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
         },
-        "mode": "Incremental"
+        "parameters": {
+          "_artifacts": {
+            "value": "[parameters('_artifacts')]"
+          },
+          "vmName": {
+            "value": "[parameters('vmName')]"
+          },
+          "vmAdminUserName": {
+            "value": "[parameters('vmAdminUserName')]"
+          },
+          "vmAdminPassword": {
+            "value": "[parameters('vmAdminPassword')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "chocoPackages": {
+            "value": "[parameters('chocoPackages')]"
+          }
+        }
       }
     }
   ],

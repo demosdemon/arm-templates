@@ -259,12 +259,12 @@
           },
           "osDisk": {
             "name": "VMOSDisk",
-            "vhd": {
-              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '2015-06-15').primaryEndpoints.blob, variables('vmStorageAccountContainerName'), '/', variables('vmOSDiskName'), '.vhd')]"
-            },
             "caching": "ReadWrite",
             "createOption": "FromImage",
-            "diskSizeGB": 250
+            "diskSizeGB": 250,
+            "managedDisk": {
+              "storageAccountType": "[parameters('storageType')]"
+            }
           }
         },
         "osProfile": {

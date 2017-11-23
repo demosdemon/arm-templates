@@ -138,6 +138,7 @@ if [[ -z $resourceGroupName ]]; then
     resourceGroupName=$(basename "${artifactsStagingDirectory}")
 fi
 
+keys=$( jq -c '.parameters | keys' "$templateFile" )
 parameterJson=$( jq -c '.parameters' "$parametersFile" )
 
 if [[ -z $uploadArtifacts ]]; then
@@ -220,4 +221,5 @@ else
     templateArg=("--template-file" "$templateFile")
 fi
 
-az group deployment "${command[@]}" "${templateArg[@]}" -g "$resourceGroupName" --parameters "$parameterJson" --verbose
+az group deployment "${command[@]}" "${templateArg[@]}" -g "$resourceGroupName" --parameters "$parameterJson" --verbose -o json |
+    tee deployment_result.json

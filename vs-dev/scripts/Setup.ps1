@@ -297,7 +297,7 @@ function Start-Task {
   Get-WindowsUpdate -IgnoreReboot -Install -AcceptAll -MicrosoftUpdate | Write-Log
 
   # https://github.com/MicrosoftDocs/visualstudio-docs/blob/master/docs/install/use-command-line-parameters-to-install-visual-studio.md
-  $vs_args = '--all', '--includeRecommended', '--includeOptional', '--wait', '--quiet'
+  $vs_args = '--all', '--includeRecommended', '--includeOptional', '--wait', '--quiet', '--norestart'
   Invoke-DownloadInstall -DownloadUri $vs_url -ArgumentList $vs_args
 
   try

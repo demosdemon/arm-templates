@@ -3,13 +3,13 @@
 param(
   [string]$TimeZoneName = 'Central Standard Time',
 
-  [string]$LogFile = $null,
+  [string]$LogFile,
 
   [switch]$Fork,
 
-  [string]$InstallModules = '',
+  [string]$InstallModules,
 
-  [string]$chocoPackages = '',
+  [string]$chocoPackages,
 
   [string]$CertificateThumbprint = '0E16BB33DB11773999FE2848D881D02103BD6B29',
 
@@ -20,7 +20,7 @@ param(
   [string]$AdminPassword
 )
 $VerbosePreference = 'Continue'
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 Add-Type -AssemblyName System.Security
 
@@ -34,22 +34,26 @@ trap{
   Exit 2
 }
 
-Get-Date | Out-String | Out-File -FilePath $LogFile
+Get-Date | Out-String | Out-File -FilePath $LogFile -Append
 
 $vs_url = 'https://aka.ms/vs/15/release/vs_professional.exe'
 $rs_url = 'https://lbcdropbox.blob.core.windows.net/dependencies/windows/development/jetbrains.exe?st=2017-11-15T22%3A37Z&se=2018-02-15T22%3A07Z&sp=r&sv=2017-04-17&sr=c&sig=7WszV6xUvS1BrK0hkOqQgqK1Y%2BnMp47uvVcQW/mtSk0%3D'
 
-$modules = (@('ISESteroids', 'PSWindowsUpdate') + $InstallModules.Split(';')) |
+$modules = "ISESteroids;PSWindowsUpdate;$InstallModules".Split(';') |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
     Sort-Object -Unique
-$chocoPackages = ('linqpad;sysinternals;fiddler4;visualstudiocode;' + $chocoPackages)
+
+$chocoPackages = "linqpad;sysinternals;fiddler4;visualstudiocode;$chocoPackages".Split(';') |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+    Sort-Object -Unique
+$chocoPackages = $chocoPackages -join ';'
 
 #region Functions
 
 function Write-Log {
   param(
     [Parameter(Mandatory, Position=0, ValueFromPipeline)]
-    [AllowNull()]
+    [AllowNull()][AllowEmptyString()]
     $Message
   )
   process {
@@ -258,12 +262,12 @@ function Start-Task {
 
   if (Test-Path $env:HOMEDRIVE\SetupComplete.txt)
   {
-      return
+    return
   }
 
   Write-Log -Message 'Resizing main partition'
   $size = Get-PartitionSupportedSize -DiskNumber 0 -PartitionNumber 1
-  Resize-Partition -DiskNumber 0 -PartitionNumber 1 -Size $size.SizeMax
+  Resize-Partition -DiskNumber 0 -PartitionNumber 1 -Size $size.SizeMax -ErrorAction SilentlyContinue
   Get-Partition -DiskNumber 0 -PartitionNumber 1 | Write-Log
 
   Write-Log -Message 'Disabling Internet Explorer Enhansed Security Configuration'
@@ -273,7 +277,7 @@ function Start-Task {
   Set-TimeZone -Name $TimeZoneName
 
   Write-Log -Message 'Updating Help.'
-  Update-Help -Module * -Force -ErrorAction Ignore
+  Update-Help -Module * -ErrorAction Ignore -Confirm:$false
 
   Write-Log -Message 'Installing NuGet Package Provider'
   Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Write-Log
@@ -310,13 +314,16 @@ function Start-Task {
     Write-Log -Message ('Failed installing ReSharper Ultimate {0}' -f $_)
   }
 
-  Get-Date | Out-File -Path $env:HOMEDRIVE\SetupComplete.txt
+  Get-Date | Out-File -FilePath $env:HOMEDRIVE\SetupComplete.txt
+
+  shutdown /r
 }
 
 #endregion
 
 if ($Fork) {
-  $params = foreach($kvp in $PSBoundParameters.GetEnumerator()) { if ($kvp.Key -ne 'Fork') { '-{0} "{1}"' -f $kvp.Key,$kvp.Value } }
+  $params = @(foreach($kvp in $PSBoundParameters.GetEnumerator()) { if ($kvp.Key -ne 'Fork') { '-{0} "{1}"' -f $kvp.Key,$kvp.Value } })
+  $params += '-LogFile "{0}"' -f $LogFile
   $command = '"{0}" {1}' -f $PSCommandPath,($params -join ' ')
   Write-Verbose -Message $command
   Start-Process -FilePath powershell -ArgumentList ('-command', $command)

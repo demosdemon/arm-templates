@@ -5,9 +5,6 @@
     "diagnosticsStorageAccount": {
       "value": "GEN-UNIQUE-13"
     },
-    "storageAccountName": {
-      "value": "GEN-UNIQUE-13"
-    },
     "secrets": {
       "value": [{
         "sourceVault": {
@@ -15,6 +12,9 @@
         },
         "vaultCertificates": [{
           "certificateUrl": "https://lbckv.vault.azure.net:443/secrets/code-signing/27584f9c546a453e83d2201b96c0cfbf",
+          "certificateStore": "My"
+        }, {
+          "certificateUrl": "https://lbckv.vault.azure.net/secrets/winrm/495d096d265e42f0a61cf864340264bf",
           "certificateStore": "My"
         }]
       }]

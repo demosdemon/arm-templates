@@ -70,7 +70,7 @@ function addKey() {
     append "$json" "{ $(escape "$key"): $data }"
 }
 
-while getopts "a:l:g:s:f:e:p:uvd" opt; do
+while getopts "a:l:g:s:f:e:p:uvdx" opt; do
     case $opt in
         a)
             artifactsStagingDirectory=$OPTARG #the folder or sample to deploy
@@ -101,6 +101,9 @@ while getopts "a:l:g:s:f:e:p:uvd" opt; do
             ;;
         d)
             devMode='true'
+            ;;
+        x)
+            purge='true'
             ;;
     esac
 done
@@ -205,6 +208,13 @@ if $uploadArtifacts; then
     templateRelPath=$(relpath "$templateFile" "$artifactsStagingDirectory")
     templateUri="$blobEndpoint$artifactsStorageContainerName/$templateRelPath?$sasToken"
 
+fi
+
+if [[ $purge ]]; then
+    if [[ "$(az group show -n "$resourceGroupName" --query id --output tsv)" ]]; then
+        echo "!! Deleteing $resourceGroupName" >&2
+        az group delete -n "$resourceGroupName" -y
+    fi;
 fi
 
 az group create -n "$resourceGroupName" -l "$location"

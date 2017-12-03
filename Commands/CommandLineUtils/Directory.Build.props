@@ -1,0 +1,28 @@
+<Project>
+
+  <Import Project="version.props" />
+  <Import Project="releasenotes.props" />
+
+  <PropertyGroup>
+    <Authors>Nate McMaster</Authors>
+    <Product>CommandLineUtils</Product>
+    <Copyright>Copyright © Nate McMaster</Copyright>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseUrl>https://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/natemcmaster/CommandLineUtils</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/natemcmaster/CommandLineUtils.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IsPackable>false</IsPackable>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <LangVersion>7.1</LangVersion>
+
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)build\StrongName.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PublicSign Condition="'$(OS)' != 'Windows_NT'">true</PublicSign>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateFullPaths Condition="'$(VSCODE_PID)' != ''">true</GenerateFullPaths>
+  </PropertyGroup>
+
+</Project>
